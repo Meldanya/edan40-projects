@@ -1,0 +1,11 @@
+In order to compile either song program:
+
+$ ghc -imaterial/Haskore2010 --make Twinkle
+
+or
+
+$ ghc -imaterial/Haskore2010 --make Teapot
+
+Then when you run the program, it will ask you for the bass style and produce a
+file called test.mid which contains the song.
+

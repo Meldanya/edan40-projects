@@ -58,21 +58,7 @@ the two lists.
 Implementation
 ==============
 
-Our first task is to implement a function to find out the score of the optimal
-alignment of two strings. We call this function similarityScore.
-
-> similarityScore :: String -> String -> Int
-> similarityScore [] [] = 0
-> similarityScore [] ys = scoreSpace * length ys
-> similarityScore xs [] = scoreSpace * length xs
-> similarityScore (x:xs) (y:ys) = max3 (sim   xs    ys   + score  x   y)
->                                      (sim   xs  (y:ys) + score  x  '-')
->                                      (sim (x:xs)  ys   + score '-'  y)
->     where
->         sim = similarityScore -- only defined for brevity above
->         score  x '-' = scoreSpace
->         score '-' y  = scoreSpace
->         score  x  y  = if x == y then scoreMatch else scoreMismatch
+Now we've had enough text. More code!
 
 Utility Functions
 -----------------
@@ -80,7 +66,7 @@ Utility Functions
 This section defines some utility functions used by the main functions to
 facilitate their tasks.
 
-As can be seen in the definition above, similarityScore uses the utility
+As can be seen in the definition below, similarityScore uses the utility
 function max3 which we define as:
 
 > max3 :: Int -> Int -> Int -> Int
@@ -111,18 +97,39 @@ elements that are equally large (by the comparison function).
 >             | cmp x == cmp a = x:(a:acc)
 >             | otherwise      = (a:acc)
 
-
 Main Functions
 --------------
 
-Now we have defined what we'll need for the function that will actually find the
-optimum alignments. We will begin by defining one with a very naïve
-implementation which will not scale to larger Strings but will illustrate the
-idea nicely.
+Now we have defined what we need for the functions that will actually find the
+optimum alignments as well as the best score. We will begin by defining them
+with a very naïve implementations which will not scale to larger Strings but
+will illustrate the ideas nicely.
+
+Our first task is to implement a function to find out the score of the optimal
+alignment of two Strings. We call this function similarityScore.
+
+> similarityScore :: String -> String -> Int
+> similarityScore [] [] = 0
+> similarityScore [] ys = scoreSpace * length ys
+> similarityScore xs [] = scoreSpace * length xs
+> similarityScore (x:xs) (y:ys) = max3 (sim   xs    ys   + score  x   y)
+>                                      (sim   xs  (y:ys) + score  x  '-')
+>                                      (sim (x:xs)  ys   + score '-'  y)
+>     where
+>         sim = similarityScore -- only defined for brevity above
+>         score  x '-' = scoreSpace
+>         score '-' y  = scoreSpace
+>         score  x  y  = if x == y then scoreMatch else scoreMismatch
+
+It simply takes both Strings as parameters and recursively finds the one with
+the highest score.
+
+The next task is to implement the function performing the actual optimal
+alignment. We call this function optAlignments.
 
 > optAlignments :: String -> String -> [AlignmentType]
-> optAlignments s1 s2 = maximaBy scoreAlign . genAlignments s1 $ s2
-> -- optAlignments = ((.) (maximaBy scoreAlign)) . genAlignments
+> -- optAlignments s1 s2 = maximaBy scoreAlign . genAlignments s1 $ s2
+> optAlignments = ((.) (maximaBy scoreAlign)) . genAlignments
 > -- point free to practice it, not sure if it's more readable though
 >     where
 >         scoreAlign ([],[])         = 0
@@ -137,6 +144,13 @@ idea nicely.
 >             (attachHeads  x  y  $ genAlignments   xs   ys) ++
 >             (attachHeads  x '-' $ genAlignments   xs (y:ys)) ++
 >             (attachHeads '-' y  $ genAlignments (x:xs) ys)
+
+This function bears some similarities to similarityScore but is a bit different.
+It actually generates all possible alignments and then filters them by use of
+the maximaBy function. Note that we can't use similarityScore as the first
+argument to maximaBy since it would find the score of the optimum alignment of
+its two parameters. We instead want a function that only calculates the score
+for the given alignment.
 
 > testOptAlignmets = optAlignments "writers" "vintner" == [("writ-ers","vintner-"), ("wri-t-ers","v-intner-"), ("wri-t-ers","-vintner-")] 
 

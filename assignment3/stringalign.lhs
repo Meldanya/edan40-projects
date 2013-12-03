@@ -1,5 +1,5 @@
-                        Assignment 3 - String Alignment
-                Erik Jansson, ada09eja, erikjansson90@gmail.com
+Assignment 3 - String Alignment
+Erik Jansson, ada09eja, erikjansson90@gmail.com
 
 Introduction
 ============
@@ -70,13 +70,12 @@ alignment of two strings. We call this function similarityScore.
 >                                      (sim (x:xs)  ys   + score '-'  y)
 >     where
 >         sim = similarityScore -- only defined for brevity above
->
 >         score  x '-' = scoreSpace
 >         score '-' y  = scoreSpace
 >         score  x  y  = if x == y then scoreMatch else scoreMismatch
 
-Some Utility Functions
-----------------------
+Utility Functions
+-----------------
 
 This section defines some utility functions used by the main functions to
 facilitate their tasks.
@@ -128,11 +127,10 @@ idea nicely.
 >     where
 >         scoreAlign ([],[])         = 0
 >         scoreAlign ((x:xs),(y:ys)) = score x y + scoreAlign (xs,ys)
->
->         score  x '-' = scoreSpace
->         score '-' y  = scoreSpace
->         score  x  y  = if x == y then scoreMatch else scoreMismatch
->
+>             where
+>                 score  x '-' = scoreSpace
+>                 score '-' y  = scoreSpace
+>                 score  x  y  = if x == y then scoreMatch else scoreMismatch
 >         genAlignments [] s2 = [(replicate (length s2) '-', s2)]
 >         genAlignments s1 [] = [(s1, replicate (length s1) '-')]
 >         genAlignments (x:xs) (y:ys) =

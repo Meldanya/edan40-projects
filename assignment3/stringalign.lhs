@@ -66,10 +66,9 @@ Now we've had enough text. More code!
 Main Functions
 --------------
 
-Now we have defined what we need for the functions that will actually find the
-optimum alignments as well as the best score. We will begin by defining them
-with a very naïve implementations which will not scale to larger Strings but
-will illustrate the ideas nicely.
+We will begin by defining very naïve implementations of the functions which will
+not scale to larger Strings but will illustrate the ideas nicely. The functions
+will use some utility functions which are defined below this section.
 
 Our first task is to implement a function to find out the score of the optimal
 alignment of two Strings. We call this function similarityScore.
@@ -97,6 +96,7 @@ alignment. We call this function optAlignments.
 >     where
 >         scoreAlign ([],[])         = 0
 >         scoreAlign ((x:xs),(y:ys)) = score x y + scoreAlign (xs,ys)
+> 
 >         genAlignments [] s2 = [(replicate (length s2) '-', s2)]
 >         genAlignments s1 [] = [(s1, replicate (length s1) '-')]
 >         genAlignments (x:xs) (y:ys) =
@@ -141,7 +141,7 @@ The two implementations using memoization follows:
 > similarityScore xs ys = sim (length xs) (length ys)
 >     where
 >         sim i j = simTable !! i !! j
->         simTable = [[ simEntry i j | j<-[0..]] | i<-[0..]]
+>         simTable = [ [ simEntry i j | j <- [0..] ] | i <- [0..] ]
 > 
 >         simEntry :: Int -> Int -> Int
 >         simEntry 0 0 = 0
@@ -162,10 +162,10 @@ table.
 > optAlignments xs ys = snd $ optAlign (length xs) (length ys)
 >     where
 >         optAlign i j = optTable !! i !! j
->         optTable = [[ optEntry i j | j<-[0..]] | i<-[0..]]
+>         optTable = [ [ optEntry i j | j <- [0..] ] | i <- [0..] ]
 > 
 >         optEntry :: Int -> Int -> (Int, [AlignmentType])
->         optEntry 0 0 = (0,[([],[])])
+>         optEntry 0 0 = (0, [([], [])])
 >         optEntry i 0 = (s + scoreSpace, attachTails x '-' a)
 >             where (s,a) = optAlign (i-1) 0
 >                   x = (xs !! (i-1))

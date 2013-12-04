@@ -1,6 +1,8 @@
 Assignment 3 - String Alignment
 Erik Jansson, ada09eja, erikjansson90@gmail.com
 
+> import Prelude hiding (concat) -- we want the concat name for ourselves!
+
 Introduction
 ============
 
@@ -71,6 +73,8 @@ function max3 which we define as:
 
 > max3 :: Int -> Int -> Int -> Int
 > max3 a b = max a . max b
+> -- max3 a = ((.) (max a)) . max
+> -- can we get rid of the a in max a?
 
 I.e., it takes the maximum of three arguments instead of two.
 
@@ -84,6 +88,12 @@ the head element of the lists in each tuple. E.g.:
     attachHeads 'H' 'P' [("askell", "ascal"), ("TML", "ython")]
         = [("Haskell","Pascal"),("HTML","Python")]
 
+We also define the opposite of attachHeads (i.e. attachTails) which will be
+handy later.
+
+> attachTails :: a -> a -> [([a],[a])] -> [([a],[a])]
+> attachTails h1 h2 li = [((xs ++ [h1]), (ys ++ [h2])) | (xs,ys) <- li]
+
 Another handy utility function that we will use later is maximaBy. It works
 exactly like the library function maximumBy except that it returns a list of all
 elements that are equally large (by the comparison function).
@@ -91,11 +101,28 @@ elements that are equally large (by the comparison function).
 > maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 > maximaBy cmp xs = foldr maxima [] xs
 >     where
->         maxima x    []   = [x]
+>         maxima x    []       = [x]
 >         maxima x (a:acc)
 >             | cmp x >  cmp a = [x]
 >             | cmp x == cmp a = x:(a:acc)
 >             | otherwise      = (a:acc)
+
+We will also define a concat function which will take a list of tuples of Int
+(the score of the alignments) and [AlignmentType] and concatenate them into one
+tuple. This requires that the list items have the same score but the function
+does not ensure it, this has to be done by the caller.
+
+> concat :: [(Int, [AlignmentType])] -> (Int, [AlignmentType])
+> concat (l:li) = (fst l, concatMap snd (l:li))
+
+We will also find the following function quite useful:
+
+> score :: Char -> Char -> Int
+> score  x '-' = scoreSpace
+> score '-' y  = scoreSpace
+> score  x  y  = if x == y then scoreMatch else scoreMismatch
+
+Given to chars, it will determine which score this will map to.
 
 Main Functions
 --------------
@@ -108,18 +135,15 @@ will illustrate the ideas nicely.
 Our first task is to implement a function to find out the score of the optimal
 alignment of two Strings. We call this function similarityScore.
 
-> similarityScore :: String -> String -> Int
-> similarityScore [] [] = 0
-> similarityScore [] ys = scoreSpace * length ys
-> similarityScore xs [] = scoreSpace * length xs
-> similarityScore (x:xs) (y:ys) = max3 (sim   xs    ys   + score  x   y)
->                                      (sim   xs  (y:ys) + score  x  '-')
->                                      (sim (x:xs)  ys   + score '-'  y)
+> similarityScore' :: String -> String -> Int
+> similarityScore' [] [] = 0
+> similarityScore' [] ys = scoreSpace * length ys
+> similarityScore' xs [] = scoreSpace * length xs
+> similarityScore' (x:xs) (y:ys) = max3 (sim   xs  (y:ys) + score  x  '-')
+>                                       (sim   xs    ys   + score  x   y)
+>                                       (sim (x:xs)  ys   + score '-'  y)
 >     where
->         sim = similarityScore -- only defined for brevity above
->         score  x '-' = scoreSpace
->         score '-' y  = scoreSpace
->         score  x  y  = if x == y then scoreMatch else scoreMismatch
+>         sim = similarityScore' -- only defined for brevity above
 
 It simply takes both Strings as parameters and recursively finds the one with
 the highest score.
@@ -127,17 +151,13 @@ the highest score.
 The next task is to implement the function performing the actual optimal
 alignment. We call this function optAlignments.
 
-> optAlignments :: String -> String -> [AlignmentType]
+> optAlignments' :: String -> String -> [AlignmentType]
 > -- optAlignments s1 s2 = maximaBy scoreAlign . genAlignments s1 $ s2
-> optAlignments = ((.) (maximaBy scoreAlign)) . genAlignments
+> optAlignments' = ((.) (maximaBy scoreAlign)) . genAlignments
 > -- point free to practice it, not sure if it's more readable though
 >     where
 >         scoreAlign ([],[])         = 0
 >         scoreAlign ((x:xs),(y:ys)) = score x y + scoreAlign (xs,ys)
->             where
->                 score  x '-' = scoreSpace
->                 score '-' y  = scoreSpace
->                 score  x  y  = if x == y then scoreMatch else scoreMismatch
 >         genAlignments [] s2 = [(replicate (length s2) '-', s2)]
 >         genAlignments s1 [] = [(s1, replicate (length s1) '-')]
 >         genAlignments (x:xs) (y:ys) =
@@ -152,7 +172,121 @@ argument to maximaBy since it would find the score of the optimum alignment of
 its two parameters. We instead want a function that only calculates the score
 for the given alignment.
 
-> testOptAlignmets = optAlignments "writers" "vintner" == [("writ-ers","vintner-"), ("wri-t-ers","v-intner-"), ("wri-t-ers","-vintner-")] 
+The problem with these implementations is that they will evaluate recursive
+calls many times. E.g. in similarityScore', there are three recursive calls
+which means that we get an execution tree similar to this:
+
+                                [a,b] [d,e]
+                              /      |      \
+                             /       |       \
+                     [b] [d,e]     [b] [e]     [a,b] [e]
+                     /    |    \ /    |    \ /   |    \
+                    /     |     X   [] []   X    |     \
+                   /      |    / \         / \   |      \
+              [] [d,e]  [] [e]     [b] [e]     [b] []  [a,b] []
+
+The lists of letters in the (extremely beautiful) figure illustrates parameters
+to the similarityScore' function. Already after a recursion depth of three one
+can see that several calls are performed more than once. This will only get
+worse as the length of the Strings increase and will quickly become
+unsustainable.
+
+Luckily, there is a technique to deal with this called memoization: We can save
+the already calculated results in a table which we later can perform lookups in.
+This way, each of the nodes in the tree above will only be calculated once and
+the next time the value is needed a lookup in the table is performed.
+
+The two implementations using memoization follows:
+
+> similarityScore :: String -> String -> Int
+> similarityScore xs ys = sim (length xs) (length ys)
+>     where
+>         sim i j = simTable !! i !! j
+>         simTable = [[ simEntry i j | j<-[0..]] | i<-[0..]]
+> 
+>         simEntry :: Int -> Int -> Int
+>         simEntry 0 0 = 0
+>         simEntry i 0 = i * scoreSpace
+>         simEntry 0 j = j * scoreSpace
+>         simEntry i j = max3 (sim (i-1) (j-1) + score  x   y)
+>                             (sim (i-1)   j   + score  x  '-')
+>                             (sim   i   (j-1) + score '-'  y)
+>             where
+>                 x = xs !! (i-1)
+>                 y = ys !! (j-1)
+
+similarityScore resembles the naïve implementation but instead of the call to
+max3 being done when recursing, we now save its return value as an entry in the
+table.
+
+> optAlignments :: String -> String -> [AlignmentType]
+> optAlignments xs ys = snd $ optAlign (length xs) (length ys)
+>     where
+>         optAlign i j = optTable !! i !! j
+>         optTable = [[ optEntry i j | j<-[0..]] | i<-[0..]]
+> 
+>         optEntry :: Int -> Int -> (Int, [AlignmentType])
+>         optEntry 0 0 = (0,[([],[])])
+>         optEntry i 0 = (s + scoreSpace, attachTails x '-' a)
+>             where (s,a) = optAlign (i-1) 0
+>                   x = (xs !! (i-1))
+>         optEntry 0 j = (s + scoreSpace, attachTails '-' y a)
+>             where (s,a) = optAlign 0 (j-1)
+>                   y = (ys !! (j-1))
+>         optEntry i j
+>             | x == y = entry1
+>             | otherwise = concat res
+>             where
+>                 x = (xs !! (i-1))
+>                 y = (ys !! (j-1))
+>                 (s1,e1) = optAlign (i-1) (j-1)
+>                 (s2,e2) = optAlign (i-1)   j
+>                 (s3,e3) = optAlign   i   (j-1)
+>                 entry1 = (s1 + score  x  y , attachTails  x  y  e1)
+>                 entry2 = (s2 + score  x '-', attachTails  x '-' e2)
+>                 entry3 = (s3 + score '-' y , attachTails '-' y  e3)
+>                 res = maximaBy fst [entry1, entry2, entry3]
+
+optAlignments is slightly more involved but the gist is the same. One difference
+is that we use recursion when either parameter is 0 (instead of using replicate
+as we did before when either list was empty). We also avoid generating all
+possible alignments (which is kind of the point of doing this optimization) and
+each recursion step only returns the ones with the best score.
+
+
+> outputOptAlignments :: String -> String -> IO ()
+> outputOptAlignments string1 string2 = do
+>     putStrLn $ "There are " ++ show (length alignments) ++
+>         " optimal alignments:"
+>     mapM_ output alignments
+>     where
+>         alignments = optAlignments string1 string2
+>         output alignment = do
+>             putStrLn ""
+>             mapM_ (\c -> putStr $ " " ++ [c]) $ fst alignment
+>             putStrLn ""
+>             mapM_ (\c -> putStr $ " " ++ [c]) $ snd alignment
+>             putStrLn ""
+
+Test Cases
+----------
+
+Lastly here are some test cases to test in GHCi. A main is also defined to allow
+compiling of this file into an executable.
+
+> testSimScore = similarityScore "writers" "vintner" == -5
+
+> testOptAlignments' = optAlignments' "writers" "vintner" ==
+>                                                 [("writ-ers","vintner-"),
+>                                                  ("wri-t-ers","v-intner-"),
+>                                                  ("wri-t-ers","-vintner-")]
+
+> testOptAlignments = optAlignments "writers" "vintner" ==
+>                                                 [("writ-ers","vintner-"),
+>                                                  ("wri-t-ers","-vintner-"),
+>                                                  ("wri-t-ers","v-intner-")]
+
+> main = outputOptAlignments "aferociousmonadatemyhamster" "functionalprogrammingrules"
 
 > scoreMatch = 0
 > scoreMismatch = -1

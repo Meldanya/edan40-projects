@@ -10,8 +10,9 @@ This report covers an implementation of the string alignment problem for the
 functional programming course on LTH.
 
 The string alignment problem is fairly simple to understand: Given two strings,
-place one above the other and insert spaces as needed in order to maximize the
-score. The score is given by three parameters:
+place one above the other and insert spaces as needed (although not directly
+above another space) in order to maximize the score. The score is given by three
+parameters:
 
 * scoreMatch    - gives the score when there's a match between the lists
 * scoreMismatch - opposite of the scoreMatch

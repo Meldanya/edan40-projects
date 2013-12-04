@@ -62,68 +62,6 @@ Implementation
 
 Now we've had enough text. More code!
 
-Utility Functions
------------------
-
-This section defines some utility functions used by the main functions to
-facilitate their tasks.
-
-As can be seen in the definition below, similarityScore uses the utility
-function max3 which we define as:
-
-> max3 :: Int -> Int -> Int -> Int
-> max3 a b = max a . max b
-> -- max3 a = ((.) (max a)) . max
-> -- can we get rid of the a in max a?
-
-I.e., it takes the maximum of three arguments instead of two.
-
-> attachHeads :: a -> a -> [([a],[a])] -> [([a],[a])]
-> attachHeads h1 h2 aList = [(h1:xs,h2:ys) | (xs,ys) <- aList]
-
-The attachHeads functions takes two items and a list of tuples with two list
-members. It will then construct a new list of tuples with the two items added as
-the head element of the lists in each tuple. E.g.:
-
-    attachHeads 'H' 'P' [("askell", "ascal"), ("TML", "ython")]
-        = [("Haskell","Pascal"),("HTML","Python")]
-
-We also define the opposite of attachHeads (i.e. attachTails) which will be
-handy later.
-
-> attachTails :: a -> a -> [([a],[a])] -> [([a],[a])]
-> attachTails h1 h2 li = [((xs ++ [h1]), (ys ++ [h2])) | (xs,ys) <- li]
-
-Another handy utility function that we will use later is maximaBy. It works
-exactly like the library function maximumBy except that it returns a list of all
-elements that are equally large (by the comparison function).
-
-> maximaBy :: Ord b => (a -> b) -> [a] -> [a]
-> maximaBy cmp xs = foldr maxima [] xs
->     where
->         maxima x    []       = [x]
->         maxima x (a:acc)
->             | cmp x >  cmp a = [x]
->             | cmp x == cmp a = x:(a:acc)
->             | otherwise      = (a:acc)
-
-We will also define a concat function which will take a list of tuples of Int
-(the score of the alignments) and [AlignmentType] and concatenate them into one
-tuple. This requires that the list items have the same score but the function
-does not ensure it, this has to be done by the caller.
-
-> concat :: [(Int, [AlignmentType])] -> (Int, [AlignmentType])
-> concat (l:li) = (fst l, concatMap snd (l:li))
-
-We will also find the following function quite useful:
-
-> score :: Char -> Char -> Int
-> score  x '-' = scoreSpace
-> score '-' y  = scoreSpace
-> score  x  y  = if x == y then scoreMatch else scoreMismatch
-
-Given to chars, it will determine which score this will map to.
-
 Main Functions
 --------------
 
@@ -253,6 +191,8 @@ as we did before when either list was empty). We also avoid generating all
 possible alignments (which is kind of the point of doing this optimization) and
 each recursion step only returns the ones with the best score.
 
+We also define an output function that will print the result to the screen in a
+nice manner.
 
 > outputOptAlignments :: String -> String -> IO ()
 > outputOptAlignments string1 string2 = do
@@ -267,6 +207,67 @@ each recursion step only returns the ones with the best score.
 >             putStrLn ""
 >             mapM_ (\c -> putStr $ " " ++ [c]) $ snd alignment
 >             putStrLn ""
+
+Utility Functions
+-----------------
+
+This section defines some utility functions used by the main functions to
+facilitate their tasks.
+
+As can be seen in the definition above, similarityScore uses the utility
+function max3 which we define as:
+
+> max3 :: Int -> Int -> Int -> Int
+> max3 a b = max a . max b
+> -- max3 a = ((.) (max a)) . max
+> -- can we get rid of the a in max a?
+
+I.e., it takes the maximum of three arguments instead of two.
+
+> attachHeads :: a -> a -> [([a],[a])] -> [([a],[a])]
+> attachHeads h1 h2 aList = [(h1:xs,h2:ys) | (xs,ys) <- aList]
+
+The attachHeads functions takes two items and a list of tuples with two list
+members. It will then construct a new list of tuples with the two items added as
+the head element of the lists in each tuple. E.g.:
+
+    attachHeads 'H' 'P' [("askell", "ascal"), ("TML", "ython")]
+        = [("Haskell","Pascal"),("HTML","Python")]
+
+We also define the opposite of attachHeads (i.e. attachTails) which will we use
+in our optimized version.
+
+> attachTails :: a -> a -> [([a],[a])] -> [([a],[a])]
+> attachTails h1 h2 li = [((xs ++ [h1]), (ys ++ [h2])) | (xs,ys) <- li]
+
+Another handy utility function that we extensive use of is maximaBy. It works
+exactly like the library function maximumBy except that it returns a list of all
+elements that are equally large (by the comparison function).
+
+> maximaBy :: Ord b => (a -> b) -> [a] -> [a]
+> maximaBy cmp xs = foldr maxima [] xs
+>     where
+>         maxima x    []       = [x]
+>         maxima x (a:acc)
+>             | cmp x >  cmp a = [x]
+>             | cmp x == cmp a = x:(a:acc)
+>             | otherwise      = (a:acc)
+
+We also use a custom concat function which will take a list of tuples of Int
+(the score of the alignments) and [AlignmentType] and concatenates them into one
+tuple. This requires that the list items have the same score but the function
+does not ensure it, this has to be done by the caller.
+
+> concat :: [(Int, [AlignmentType])] -> (Int, [AlignmentType])
+> concat (l:li) = (fst l, concatMap snd (l:li))
+
+Lastly, the score function is used by all of the main functions and simply
+calculates the score of two chars.
+
+> score :: Char -> Char -> Int
+> score  x '-' = scoreSpace
+> score '-' y  = scoreSpace
+> score  x  y  = if x == y then scoreMatch else scoreMismatch
 
 Test Cases
 ----------

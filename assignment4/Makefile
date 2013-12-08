@@ -4,5 +4,5 @@ default:
 clean:
 	rm -f .BAK.* *~
 
-zip:	clean
+zip: clean
 	cd ..; zip -r ass4 clean_ass4

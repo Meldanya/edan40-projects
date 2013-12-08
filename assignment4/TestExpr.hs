@@ -6,7 +6,7 @@ import Expr
 
 dict = Dictionary.insert ("x", 1) $
        Dictionary.insert ("y", 2) $
-       Dictionary.empty 
+       Dictionary.empty
 
 testValue string = value (fromString string) dict
 

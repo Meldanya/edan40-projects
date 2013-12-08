@@ -27,7 +27,7 @@ p1 = fromString  ("\
 \    q := n/b;\
 \    r := n - q*b;\
 \    write r;\
-\    s := p*r+s;\                    
+\    s := p*r+s;\
 \    p := p*10;\
 \    n :=q;\
 \  end\

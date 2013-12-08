@@ -2,7 +2,7 @@
 module TestStatement where
 
 import Statement
-p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11 :: Statement.T 
+p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11 :: Statement.T
 p1 = fromString "skip;"
 p2 = fromString "read count;"
 p3 = fromString "write count+1;"

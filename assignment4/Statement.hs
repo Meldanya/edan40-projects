@@ -13,8 +13,8 @@ assignment = word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
 buildAss (v, e) = Assignment v e
 
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
-exec (If cond thenStmts elseStmts: stmts) dict input = 
-    if (Expr.value cond dict)>0 
+exec (If cond thenStmts elseStmts: stmts) dict input =
+    if (Expr.value cond dict)>0
     then exec (thenStmts: stmts) dict input
     else exec (elseStmts: stmts) dict input
 

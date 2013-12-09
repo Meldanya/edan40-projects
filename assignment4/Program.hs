@@ -5,10 +5,15 @@ import qualified Statement
 import qualified Dictionary
 import Prelude hiding (return, fail)
 
-newtype T = Program () -- to be defined
+newtype T = Program [Statement.T] deriving (Show)
+
+disp (Program stmts) = concat [ str | stmt <- stmts,
+                                      let str = Statement.toString stmt,
+                                      (not.null) str,
+                                      str /= "\n" ]
 
 instance Parse T where
-  parse = error "Program.parse not implemented"
-  toString = error "Program.toString not implemented"
+  parse = iter Statement.parse >-> Program
+  toString = disp
 
-exec = error "Program.exec not implemented"
+exec (Program s) = Statement.exec s Dictionary.empty
